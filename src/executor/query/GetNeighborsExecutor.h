@@ -9,6 +9,8 @@
 
 #include "common/interface/gen-cpp2/storage_types.h"
 
+#include <tuple>
+
 #include "executor/StorageAccessExecutor.h"
 #include "planner/plan/Query.h"
 
@@ -17,7 +19,10 @@ namespace graph {
 
 class GetNeighborsExecutor final : public StorageAccessExecutor {
 public:
-    GetNeighborsExecutor(const PlanNode *node, QueryContext *qctx)
+    using RpcResponse = storage::StorageRpcResponse<storage::cpp2::GetNeighborsResponse>;
+    using StatefulResp = std::tuple<List, Result::State>;
+
+    GetNeighborsExecutor(const PlanNode* node, QueryContext* qctx)
         : StorageAccessExecutor("GetNeighborsExecutor", node, qctx) {
         gn_ = asNode<GetNeighbors>(node);
     }
@@ -27,11 +32,11 @@ public:
     DataSet buildRequestDataSet();
 
 private:
-    using RpcResponse = storage::StorageRpcResponse<storage::cpp2::GetNeighborsResponse>;
-    Status handleResponse(RpcResponse& resps);
+    StatusOr<StatefulResp> handleResponse(RpcResponse& resps);
+    folly::Future<StatusOr<StatefulResp>> execute(DataSet ds);
 
 private:
-    const GetNeighbors*     gn_;
+    const GetNeighbors* gn_;
 };
 
 }   // namespace graph
